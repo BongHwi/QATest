@@ -92,7 +92,7 @@ void AliAnalysisTaskMyQA::UserCreateOutputObjects()
     fOutputList = new TList();
     fOutputList->SetOwner(kTRUE);
 
-    TH1F *htotalEvent = new TH1F("htotalEvent","Number of Events",10,0,10);
+    htotalEvent = new TH1F("htotalEvent","Number of Events",10,0,10);
     htotalEvent->GetXaxis()->SetBinLabel(1,"All Events");
     htotalEvent->GetXaxis()->SetBinLabel(2,"IsINELg0");
     htotalEvent->GetXaxis()->SetBinLabel(3,"tracklet in |Eta|<1");
@@ -100,7 +100,7 @@ void AliAnalysisTaskMyQA::UserCreateOutputObjects()
     htotalEvent->GetXaxis()->SetBinLabel(5,"AliMultiSelection");
     fOutputList->Add(htotalEvent);
 
-    TH1F *htriggered_INELg0_tracklet = new TH1F("htriggered_INELg0_tracklet","Triggered event in INEL>0",11,0,11);
+    htriggered_INELg0_tracklet = new TH1F("htriggered_INELg0_tracklet","Triggered event in INEL>0",11,0,11);
     htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(1,"0 to Inf (MB)");
     htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(2,"0 to 5");
     htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(3,"6 to 10");
@@ -115,7 +115,7 @@ void AliAnalysisTaskMyQA::UserCreateOutputObjects()
     fOutputList->Add(htriggered_INELg0_tracklet);
 
     /*
-    TH1F *htriggered_INELg0_VOM = new TH1F("htriggered_INELg0_VOM","Triggered event in INEL>0",11,0,11);
+    htriggered_INELg0_VOM = new TH1F("htriggered_INELg0_VOM","Triggered event in INEL>0",11,0,11);
     htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(1,"0.0 - 100.0% (MB)");
     htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(2,"70.0 - 100.0%");
     htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(3,"50.0 - 70.0%");
@@ -130,7 +130,7 @@ void AliAnalysisTaskMyQA::UserCreateOutputObjects()
     fOutputList->Add(htriggered_INELg0_VOM);
     */
 
-    TH1F *htriggered_CINT7_tracklet = new TH1F("htriggered_CINT7_tracklet","Triggered event in INEL>0",11,0,11);
+    htriggered_CINT7_tracklet = new TH1F("htriggered_CINT7_tracklet","Triggered event in INEL>0",11,0,11);
     htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(1,"0 to Inf (MB)");
     htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(2,"0 to 5");
     htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(3,"6 to 10");
@@ -144,7 +144,7 @@ void AliAnalysisTaskMyQA::UserCreateOutputObjects()
     htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(11,"51 more");
     fOutputList->Add(htriggered_CINT7_tracklet);
 
-    TH1F *htriggered_CINT7_VOM = new TH1F("htriggered_CINT7_VOM","Triggered event in INEL>0",11,0,11);
+    htriggered_CINT7_VOM = new TH1F("htriggered_CINT7_VOM","Triggered event in INEL>0",11,0,11);
     htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(1,"0.0 - 100.0% (MB)");
     htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(2,"70.0 - 100.0%");
     htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(3,"50.0 - 70.0%");
@@ -158,7 +158,7 @@ void AliAnalysisTaskMyQA::UserCreateOutputObjects()
     htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(11,"0.0 - 1.0%");
     fOutputList->Add(htriggered_CINT7_VOM);
 
-    TH1F *htriggered_AliMult_VOM = new TH1F("htriggered_AliMult_VOM","Triggered event in INEL>0",11,0,11);
+    htriggered_AliMult_VOM = new TH1F("htriggered_AliMult_VOM","Triggered event in INEL>0",11,0,11);
     htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(1,"0.0 - 100.0% (MB)");
     htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(2,"70.0 - 100.0%");
     htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(3,"50.0 - 70.0%");
@@ -172,11 +172,11 @@ void AliAnalysisTaskMyQA::UserCreateOutputObjects()
     htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(11,"0.0 - 1.0%");
     fOutputList->Add(htriggered_AliMult_VOM);
 
-    TH1F *fMultDist = new TH1F("fMultDist","Multiplicity Distribution of PP",200,0,200);
+    fMultDist = new TH1F("fMultDist","Multiplicity Distribution of PP",200,0,200);
     fMultDist->GetXaxis()->SetTitle("Multiplicity Percentile");
     fOutputList->Add(fMultDist);
 
-    TH1F *fMultDist_pp = new TH1F("fMultDist_pp","Multiplicity Distribution of PP",200,0,200);
+    fMultDist_pp = new TH1F("fMultDist_pp","Multiplicity Distribution of PP",200,0,200);
     fMultDist_pp->GetXaxis()->SetTitle("Multiplicity Percentile");
     fOutputList->Add(fMultDist_pp);
 
@@ -185,6 +185,7 @@ void AliAnalysisTaskMyQA::UserCreateOutputObjects()
 //_____________________________________________________________________________
 void AliAnalysisTaskMyQA::UserExec(Option_t *)
 {
+    //std::cout << "Event!" << std::endl;
     fESD = dynamic_cast<AliESDEvent*> (InputEvent());
     if(!fESD) return;
     AliMCEvent* mcEvent = MCEvent();
@@ -192,7 +193,7 @@ void AliAnalysisTaskMyQA::UserExec(Option_t *)
     AliStack*    mcstack = mcEvent->Stack();
     if(!mcstack) return;
 
-    ((TH1F*)fOutputList->FindObject("htotalEvent"))->Fill(0); // Total N of event
+    htotalEvent->Fill(0); // Total N of event
 
     Bool_t IsINELg0 = false;
     for (Int_t it = 0; it < mcstack->GetNprimary(); it++) {
@@ -203,7 +204,7 @@ void AliAnalysisTaskMyQA::UserExec(Option_t *)
     // INEL > 0
     if(IsINELg0){
         //std::cout << "It's INELg0 event!" << std::endl;
-        ((TH1F*)fOutputList->FindObject("htotalEvent"))->Fill(1); // Total N of INELg0 event
+        htotalEvent->Fill(1); // Total N of INELg0 event
 
         const AliMultiplicity* mult = fESD->GetMultiplicity();
         Int_t fSpdT_origin = mult->GetNumberOfTracklets();
@@ -215,39 +216,39 @@ void AliAnalysisTaskMyQA::UserExec(Option_t *)
         
         // |Eta| < 1
         if(fNSpdT > 0){
-            ((TH1F*)fOutputList->FindObject("htotalEvent"))->Fill(2); // Total N of triggered event.
+            htotalEvent->Fill(2); // Total N of triggered event.
 
-            if(fNSpdT > 0) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(0); // INEL>0
+            if(fNSpdT > 0) htriggered_INELg0_tracklet->Fill(0); // INEL>0
 
-            if(fNSpdT > 51) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(10); // INEL>0
-            else if(fNSpdT > 41) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(9); // INEL>0
-            else if(fNSpdT > 36) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(8); // INEL>0
-            else if(fNSpdT > 31) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(7); // INEL>0
-            else if(fNSpdT > 26) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(6); // INEL>0
-            else if(fNSpdT > 21) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(5); // INEL>0
-            else if(fNSpdT > 16) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(4); // INEL>0
-            else if(fNSpdT > 11) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(3); // INEL>0
-            else if(fNSpdT > 6) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(2); // INEL>0
-            else if(fNSpdT > 0) ((TH1F*)fOutputList->FindObject("htriggered_INELg0_tracklet"))->Fill(1); // INEL>0
+            if(fNSpdT > 51) htriggered_INELg0_tracklet->Fill(10); // INEL>0
+            else if(fNSpdT > 41) htriggered_INELg0_tracklet->Fill(9); // INEL>0
+            else if(fNSpdT > 36) htriggered_INELg0_tracklet->Fill(8); // INEL>0
+            else if(fNSpdT > 31) htriggered_INELg0_tracklet->Fill(7); // INEL>0
+            else if(fNSpdT > 26) htriggered_INELg0_tracklet->Fill(6); // INEL>0
+            else if(fNSpdT > 21) htriggered_INELg0_tracklet->Fill(5); // INEL>0
+            else if(fNSpdT > 16) htriggered_INELg0_tracklet->Fill(4); // INEL>0
+            else if(fNSpdT > 11) htriggered_INELg0_tracklet->Fill(3); // INEL>0
+            else if(fNSpdT > 6) htriggered_INELg0_tracklet->Fill(2); // INEL>0
+            else if(fNSpdT > 0) htriggered_INELg0_tracklet->Fill(1); // INEL>0
             
             // CINT7 Triggered event.
             Bool_t isSelectedkINT7 =(((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->IsEventSelected() & AliVEvent::kINT7);
             if(isSelectedkINT7){
 
-                ((TH1F*)fOutputList->FindObject("htotalEvent"))->Fill(3); // Total N of triggered event.
+                htotalEvent->Fill(3); // Total N of triggered event.
 
-                if(fNSpdT > 0) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(0); // INEL>0 in CINT7
+                if(fNSpdT > 0) htriggered_CINT7_tracklet->Fill(0); // INEL>0 in CINT7
                 
-                if(fNSpdT > 51) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(10); // INEL>0 in CINT7
-                else if(fNSpdT > 41) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(9); // INEL>0 in CINT7
-                else if(fNSpdT > 36) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(8); // INEL>0 in CINT7
-                else if(fNSpdT > 31) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(7); // INEL>0 in CINT7
-                else if(fNSpdT > 26) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(6); // INEL>0 in CINT7
-                else if(fNSpdT > 21) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(5); // INEL>0 in CINT7
-                else if(fNSpdT > 16) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(4); // INEL>0 in CINT7
-                else if(fNSpdT > 11) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(3); // INEL>0 in CINT7
-                else if(fNSpdT > 6) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(2); // INEL>0 in CINT7
-                else if(fNSpdT > 0) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_tracklet"))->Fill(1); // INEL>0 in CINT7
+                if(fNSpdT > 51) htriggered_CINT7_tracklet->Fill(10); // INEL>0 in CINT7
+                else if(fNSpdT > 41) htriggered_CINT7_tracklet->Fill(9); // INEL>0 in CINT7
+                else if(fNSpdT > 36) htriggered_CINT7_tracklet->Fill(8); // INEL>0 in CINT7
+                else if(fNSpdT > 31) htriggered_CINT7_tracklet->Fill(7); // INEL>0 in CINT7
+                else if(fNSpdT > 26) htriggered_CINT7_tracklet->Fill(6); // INEL>0 in CINT7
+                else if(fNSpdT > 21) htriggered_CINT7_tracklet->Fill(5); // INEL>0 in CINT7
+                else if(fNSpdT > 16) htriggered_CINT7_tracklet->Fill(4); // INEL>0 in CINT7
+                else if(fNSpdT > 11) htriggered_CINT7_tracklet->Fill(3); // INEL>0 in CINT7
+                else if(fNSpdT > 6) htriggered_CINT7_tracklet->Fill(2); // INEL>0 in CINT7
+                else if(fNSpdT > 0) htriggered_CINT7_tracklet->Fill(1); // INEL>0 in CINT7
 
 
                 // AliMultSelection
@@ -256,37 +257,37 @@ void AliAnalysisTaskMyQA::UserExec(Option_t *)
 
                 //Quality check                                                                          // it should be same with 1.
                 lPerc = MultSelection->GetMultiplicityPercentile("V0M");
-                ((TH1F*)fOutputList->FindObject("fMultDist"))->Fill(lPerc);
+                fMultDist->Fill(lPerc);
 
-                if(lPerc < 101) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(0); // INEL>0 in CINT7
+                if(lPerc < 101) htriggered_CINT7_VOM->Fill(0); // INEL>0 in CINT7
                 
-                if(lPerc > 70) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(1); // INEL>0 in CINT7
-                else if(lPerc > 50) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(2); // INEL>0 in CINT7
-                else if(lPerc > 40) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(3); // INEL>0 in CINT7
-                else if(lPerc > 30) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(4); // INEL>0 in CINT7
-                else if(lPerc > 20) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(5); // INEL>0 in CINT7
-                else if(lPerc > 15) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(6); // INEL>0 in CINT7
-                else if(lPerc > 10) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(7); // INEL>0 in CINT7
-                else if(lPerc > 5) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(8); // INEL>0 in CINT7
-                else if(lPerc > 1) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(9); // INEL>0 in CINT7
-                else if(lPerc > 0) ((TH1F*)fOutputList->FindObject("htriggered_CINT7_VOM"))->Fill(10); // INEL>0 in CINT7
+                if(lPerc > 70) htriggered_CINT7_VOM->Fill(1); // INEL>0 in CINT7
+                else if(lPerc > 50) htriggered_CINT7_VOM->Fill(2); // INEL>0 in CINT7
+                else if(lPerc > 40) htriggered_CINT7_VOM->Fill(3); // INEL>0 in CINT7
+                else if(lPerc > 30) htriggered_CINT7_VOM->Fill(4); // INEL>0 in CINT7
+                else if(lPerc > 20) htriggered_CINT7_VOM->Fill(5); // INEL>0 in CINT7
+                else if(lPerc > 15) htriggered_CINT7_VOM->Fill(6); // INEL>0 in CINT7
+                else if(lPerc > 10) htriggered_CINT7_VOM->Fill(7); // INEL>0 in CINT7
+                else if(lPerc > 5) htriggered_CINT7_VOM->Fill(8); // INEL>0 in CINT7
+                else if(lPerc > 1) htriggered_CINT7_VOM->Fill(9); // INEL>0 in CINT7
+                else if(lPerc > 0) htriggered_CINT7_VOM->Fill(10); // INEL>0 in CINT7
                 
                 if(MultSelection->IsEventSelected()){
-                    ((TH1F*)fOutputList->FindObject("htotalEvent"))->Fill(4); // Total N of Multi selected event
-                    ((TH1F*)fOutputList->FindObject("fMultDist_pp"))->Fill(lPerc);
+                    htotalEvent->Fill(4); // Total N of Multi selected event
+                    fMultDist_pp->Fill(lPerc);
 
-                    if(lPerc < 101) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(0); // INEL>0 in CINT7
+                    if(lPerc < 101) htriggered_AliMult_VOM->Fill(0); // INEL>0 in CINT7
                     
-                    if(lPerc > 70) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(1); // INEL>0 in CINT7
-                    else if(lPerc > 50) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(2); // INEL>0 in CINT7
-                    else if(lPerc > 40) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(3); // INEL>0 in CINT7
-                    else if(lPerc > 30) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(4); // INEL>0 in CINT7
-                    else if(lPerc > 20) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(5); // INEL>0 in CINT7
-                    else if(lPerc > 15) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(6); // INEL>0 in CINT7
-                    else if(lPerc > 10) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(7); // INEL>0 in CINT7
-                    else if(lPerc > 5) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(8); // INEL>0 in CINT7
-                    else if(lPerc > 1) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(9); // INEL>0 in CINT7
-                    else if(lPerc > 0) ((TH1F*)fOutputList->FindObject("htriggered_AliMult_VOM"))->Fill(10); // INEL>0 in CINT7
+                    if(lPerc > 70) htriggered_AliMult_VOM->Fill(1); // INEL>0 in CINT7
+                    else if(lPerc > 50) htriggered_AliMult_VOM->Fill(2); // INEL>0 in CINT7
+                    else if(lPerc > 40) htriggered_AliMult_VOM->Fill(3); // INEL>0 in CINT7
+                    else if(lPerc > 30) htriggered_AliMult_VOM->Fill(4); // INEL>0 in CINT7
+                    else if(lPerc > 20) htriggered_AliMult_VOM->Fill(5); // INEL>0 in CINT7
+                    else if(lPerc > 15) htriggered_AliMult_VOM->Fill(6); // INEL>0 in CINT7
+                    else if(lPerc > 10) htriggered_AliMult_VOM->Fill(7); // INEL>0 in CINT7
+                    else if(lPerc > 5) htriggered_AliMult_VOM->Fill(8); // INEL>0 in CINT7
+                    else if(lPerc > 1) htriggered_AliMult_VOM->Fill(9); // INEL>0 in CINT7
+                    else if(lPerc > 0) htriggered_AliMult_VOM->Fill(10); // INEL>0 in CINT7
                     
                 }// IsEventSelected in AliMultSelection
             }//eta < 1
