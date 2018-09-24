@@ -188,8 +188,15 @@ void AliAnalysisTaskMyQA::UserExec(Option_t *)
     //std::cout << "Event!" << std::endl;
     fESD = dynamic_cast<AliESDEvent*> (InputEvent());
     if(!fESD) return;
-    AliMCEvent* mcEvent = MCEvent();
+
+    AliMCEvent  *mcEvent        = 0x0;
+    AliVEventHandler* eventHandler = AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler();
+    if(eventHandler){
+        AliMCEventHandler* mcEventHandler = dynamic_cast<AliMCEventHandler*>(eventHandler);
+        if(mcEventHandler) mcEvent = static_cast<AliMCEventHandler*>(AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler())->MCEvent();
+    }
     if(!mcEvent) return;
+    
     AliStack*    mcstack = mcEvent->Stack();
     if(!mcstack) return;
 
