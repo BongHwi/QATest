@@ -1,7 +1,7 @@
 #if !defined (__CINT__) || defined (__CLING__)
 #include "AliAnalysisAlien.h"
 #include "AliAnalysisManager.h"
-#include "AliESDInputHandler.h"
+#include "AliAODInputHandler.h"
 #include "AliAnalysisTaskMyQA.h"
 #endif
 
@@ -44,9 +44,9 @@ void runAnalysis(const char *dataset = "test1.list")
 
     // create the analysis manager
     AliAnalysisManager *mgr = new AliAnalysisManager("AnalysisTaskMyQA");
-    AliESDInputHandler *ESDH = new AliESDInputHandler();
-    ((AliESDInputHandler *) ESDH)->SetReadFriends(kFALSE);
-    mgr->SetInputEventHandler(ESDH);
+    AliAODInputHandler *AODH = new AliAODInputHandler();
+    // ((AliAODInputHandler *) ESDH)->SetReadFriends(kFALSE);
+    mgr->SetInputEventHandler(AODH);
     if (MCcase) {
         AliMCEventHandler *mcHandler  = new AliMCEventHandler();
         mgr->SetMCtruthEventHandler(mcHandler);
@@ -63,13 +63,20 @@ void runAnalysis(const char *dataset = "test1.list")
         return;
     }
     // Multiplicity selection
-    AliMultSelectionTask *MultSlection = reinterpret_cast<AliMultSelectionTask*>(gInterpreter->ExecuteMacro("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C"));
-    if (!MultSlection) {
-        Printf("no MultSlection");
-        return;
-    }
+    gInterpreter->ExecuteMacro(
+        "$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/macros/"
+        "AddTaskMultSelection.C");
+
+    // PID response
+    AliAnalysisTask* fPIDResponse =
+        reinterpret_cast<AliAnalysisTask*>(
+            gInterpreter->ExecuteMacro(Form(
+                "$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C(%d)", MCcase)));
+                
     gInterpreter->LoadMacro("AliAnalysisTaskMyQA.cxx++g");
     AliAnalysisTaskMyQA *task = reinterpret_cast<AliAnalysisTaskMyQA*>(gInterpreter->ExecuteMacro("AddMyTask.C"));
+    task->fEventCuts.SetManualMode();
+    task->fEventCuts.SetupRun2pp();
 #else
     gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/AddTaskPhysicsSelection.C");
     AliPhysicsSelectionTask *physSelTask = AddTaskPhysicsSelection(MCcase);
@@ -87,9 +94,9 @@ void runAnalysis(const char *dataset = "test1.list")
     AliAnalysisTaskMyQA *task = AddMyTask();
 #endif
     if (!mgr->InitAnalysis()) return;
-    mgr->SetDebugLevel(2);
-    mgr->PrintStatus();
-    mgr->SetUseProgressBar(1, 25);
+    // mgr->SetDebugLevel(2);
+    // mgr->PrintStatus();
+    // mgr->SetUseProgressBar(1, 25);
 
     if (local) {
         /**
@@ -100,8 +107,8 @@ void runAnalysis(const char *dataset = "test1.list")
         // start the analysis locally, reading the events from the tchain
         mgr->StartAnalysis("local", chain);
         **/
-        TChain *chain = new TChain("esdTree");
-        chain = CreateChain(dataset, kFALSE); // for KIAF use
+        TChain *chain = new TChain("aodTree");
+        chain = CreateChain(dataset, kTRUE); // for KIAF use
         //chain->Add("AliESDs.root");
         mgr->StartAnalysis("local", chain);
     } else {

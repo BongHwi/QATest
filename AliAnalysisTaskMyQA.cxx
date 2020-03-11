@@ -15,296 +15,146 @@
 
 /* AliAnaysisTaskMyTask
  *
- * 
- * 
+ *
+ *
  */
 
+#include "AliAnalysisTaskMyQA.h"
+
+#include <math.h>
+#include "TMath.h"
 
 #include <iostream>
-#include <math.h>
 
-#include "TChain.h"
-#include "TH1F.h"
-#include "TList.h"
-#include "AliAnalysisTask.h"
+#include "AliAODEvent.h"
+#include "AliAODHandler.h"
+#include "AliAODMCHeader.h"
+#include "AliAODMCParticle.h"
+#include "AliAODTrack.h"
 #include "AliAnalysisManager.h"
-#include "AliAnalysisUtils.h"
-
+#include "AliAnalysisTask.h"
 #include "AliESDEvent.h"
-#include "AliESDInputHandler.h"
-
-#include "AliMCEventHandler.h"
-#include "AliMCEvent.h"
-#include "AliMCParticle.h"
-#include "AliStack.h"
-
-#include "AliAnalysisTaskMyQA.h"
-#include "AliMultSelection.h"
-#include "AliMultiplicity.h"
+#include "AliESDtrack.h"
 #include "AliESDtrackCuts.h"
+#include "AliEventCuts.h"
+#include "AliMCEvent.h"
+#include "AliMCEventHandler.h"
+#include "AliMultSelectionTask.h"
+#include "AliPIDResponse.h"
+#include "AliStack.h"
+#include "TChain.h"
+#include "THistManager.h"
 
+enum {
+  kXiCode = 3312,          // Xi-
+  kXiZeroCode = 3322,      // Xi0
+  kLambdaCode = 3122,      // Lambda
+  kProtonCode = 2212,      // Proton+
+  kPionCode = 211,         // Pion+
+  kXiStarCode = 3324,      // Xi(1530)0
+  kXiStarMCode = 3314,     // Xi(1530)-
+  kLambdaStarCode = 3124,  // Lambda1520
+  kSigmaZeroCode = 3212    // Sigma0
+};
 class AliAnalysisTaskMyQA;
 
 using namespace std;
 
 ClassImp(AliAnalysisTaskMyQA)
 
-AliAnalysisTaskMyQA::AliAnalysisTaskMyQA() : AliAnalysisTaskSE(), 
-    fESD(0), 
-    fOutputList(0), 
-    htotalEvent(0), 
-    htriggered_INELg0_tracklet(0),
-    htriggered_CINT7_tracklet(0),
-    htriggered_CINT7_VOM(0),
-    htriggered_AliMult_VOM(0),
-    fMultDist(0),
-    fMultDist_pp(0)
-{
+    AliAnalysisTaskMyQA::AliAnalysisTaskMyQA()
+    : AliAnalysisTaskSE(),
+      fEvt(0),
+      fHistos(nullptr),
+      fMCArray(nullptr),
+      fIsPrimaryMC(false) {}
+//_____________________________________________________________________________
+AliAnalysisTaskMyQA::AliAnalysisTaskMyQA(const char* name)
+    : AliAnalysisTaskSE(name),
+      fEvt(0),
+      fHistos(nullptr),
+      fMCArray(nullptr),
+      fIsPrimaryMC(false) {
+  // constructor
+  DefineInput(0, TChain::Class());
+  DefineOutput(1, TList::Class());
+}
+//_____________________________________________________________________________
+AliAnalysisTaskMyQA::~AliAnalysisTaskMyQA() {}
+//_____________________________________________________________________________
+void AliAnalysisTaskMyQA::UserCreateOutputObjects() {
+  fHistos = new THistManager("Sigma1385hists");
+  fEventCuts.AddQAplotsToList(fHistos->GetListOfHistograms());
 
+  fHistos->CreateTH1("hCheck", "", 5, -1.5, 3.5, "s");
+
+  PostData(1, fHistos->GetListOfHistograms());
 }
 //_____________________________________________________________________________
-AliAnalysisTaskMyQA::AliAnalysisTaskMyQA(const char* name) : AliAnalysisTaskSE(name),
-    fESD(0),
-    fOutputList(0), 
-    htotalEvent(0), 
-    htriggered_INELg0_tracklet(0),
-    htriggered_CINT7_tracklet(0),
-    htriggered_CINT7_VOM(0),
-    htriggered_AliMult_VOM(0),
-    fMultDist(0),
-    fMultDist_pp(0)
-{
-    // constructor
-    DefineInput(0, TChain::Class());
-    DefineOutput(1, TList::Class());
-}
-//_____________________________________________________________________________
-AliAnalysisTaskMyQA::~AliAnalysisTaskMyQA()
-{
-    // destructor
-    if(fOutputList) {
-        delete fOutputList;
+void AliAnalysisTaskMyQA::UserExec(Option_t*) {
+  AliVEvent* event = InputEvent();
+  if (!event) {
+    PostData(1, fHistos->GetListOfHistograms());
+    AliInfo("Could not retrieve event");
+    return;
+  }
+
+  event->IsA() == AliESDEvent::Class()
+      ? fEvt = dynamic_cast<AliESDEvent*>(event)
+      : fEvt = dynamic_cast<AliAODEvent*>(event);
+  if (!fEvt) {
+    PostData(1, fHistos->GetListOfHistograms());
+    return;
+  }
+  bool IsEvtSelected = fEventCuts.AcceptEvent(event);
+
+  if (!IsEvtSelected) {
+    PostData(1, fHistos->GetListOfHistograms());
+    return;
+  }
+  fMCArray = (TClonesArray*)fEvt->FindListObject("mcparticles");  // AOD Case
+
+  for (Int_t it = 0; it < fMCArray->GetEntriesFast(); it++) {
+    AliAODMCParticle* mcInputTrack = (AliAODMCParticle*)fMCArray->At(it);
+    if (!mcInputTrack) {
+      Error("UserExec", "Could not receive MC track %d", it);
+      continue;
     }
-}
-//_____________________________________________________________________________
-void AliAnalysisTaskMyQA::UserCreateOutputObjects()
-{
-    fOutputList = new TList();
-    fOutputList->SetOwner(kTRUE);
+    // fHistos->FillTH1("hCheck", -1);
 
-    htotalEvent = new TH1F("htotalEvent","Number of Events",10,0,10);
-    htotalEvent->GetXaxis()->SetBinLabel(1,"All Events");
-    htotalEvent->GetXaxis()->SetBinLabel(2,"IsINELg0");
-    htotalEvent->GetXaxis()->SetBinLabel(3,"tracklet in |Eta|<1");
-    htotalEvent->GetXaxis()->SetBinLabel(4,"CINT7 triggered");
-    htotalEvent->GetXaxis()->SetBinLabel(5,"AliMultiSelection");
-    fOutputList->Add(htotalEvent);
+    Int_t v0PdgCode = mcInputTrack->GetPdgCode();
 
-    htriggered_INELg0_tracklet = new TH1F("htriggered_INELg0_tracklet","Triggered event in INEL>0",11,0,11);
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(1,"0 to Inf (MB)");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(2,"0 to 5");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(3,"6 to 10");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(4,"11 to 15");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(5,"16 to 20");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(6,"21 to 25");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(7,"26 to 30");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(8,"31 to 35");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(9,"36 to 40");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(10,"41 to 50");
-    htriggered_INELg0_tracklet->GetXaxis()->SetBinLabel(11,"51 more");
-    fOutputList->Add(htriggered_INELg0_tracklet);
+    if (TMath::Abs(v0PdgCode) != kXiStarCode)
+      continue;
+    if (fIsPrimaryMC && !mcInputTrack->IsPrimary())
+      continue;
 
-    /*
-    htriggered_INELg0_VOM = new TH1F("htriggered_INELg0_VOM","Triggered event in INEL>0",11,0,11);
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(1,"0.0 - 100.0% (MB)");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(2,"70.0 - 100.0%");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(3,"50.0 - 70.0%");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(4,"40.0 - 50.0%");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(5,"30.0 - 40.0%");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(6,"20.0 - 30.0%");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(7,"15.0 - 20.0%");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(8,"10.0 - 15.0%");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(9,"5.0 - 10.0%");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(10,"1.0 - 5.0%");
-    htriggered_INELg0_VOM->GetXaxis()->SetBinLabel(11,"0.0 - 1.0%");
-    fOutputList->Add(htriggered_INELg0_VOM);
-    */
-
-    htriggered_CINT7_tracklet = new TH1F("htriggered_CINT7_tracklet","Triggered event in INEL>0",11,0,11);
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(1,"0 to Inf (MB)");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(2,"0 to 5");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(3,"6 to 10");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(4,"11 to 15");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(5,"16 to 20");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(6,"21 to 25");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(7,"26 to 30");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(8,"31 to 35");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(9,"36 to 40");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(10,"41 to 50");
-    htriggered_CINT7_tracklet->GetXaxis()->SetBinLabel(11,"51 more");
-    fOutputList->Add(htriggered_CINT7_tracklet);
-
-    htriggered_CINT7_VOM = new TH1F("htriggered_CINT7_VOM","Triggered event in INEL>0",11,0,11);
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(1,"0.0 - 100.0% (MB)");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(2,"70.0 - 100.0%");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(3,"50.0 - 70.0%");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(4,"40.0 - 50.0%");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(5,"30.0 - 40.0%");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(6,"20.0 - 30.0%");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(7,"15.0 - 20.0%");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(8,"10.0 - 15.0%");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(9,"5.0 - 10.0%");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(10,"1.0 - 5.0%");
-    htriggered_CINT7_VOM->GetXaxis()->SetBinLabel(11,"0.0 - 1.0%");
-    fOutputList->Add(htriggered_CINT7_VOM);
-
-    htriggered_AliMult_VOM = new TH1F("htriggered_AliMult_VOM","Triggered event in INEL>0",11,0,11);
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(1,"0.0 - 100.0% (MB)");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(2,"70.0 - 100.0%");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(3,"50.0 - 70.0%");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(4,"40.0 - 50.0%");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(5,"30.0 - 40.0%");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(6,"20.0 - 30.0%");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(7,"15.0 - 20.0%");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(8,"10.0 - 15.0%");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(9,"5.0 - 10.0%");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(10,"1.0 - 5.0%");
-    htriggered_AliMult_VOM->GetXaxis()->SetBinLabel(11,"0.0 - 1.0%");
-    fOutputList->Add(htriggered_AliMult_VOM);
-
-    fMultDist = new TH1F("fMultDist","Multiplicity Distribution of PP",200,0,200);
-    fMultDist->GetXaxis()->SetTitle("Multiplicity Percentile");
-    fOutputList->Add(fMultDist);
-
-    fMultDist_pp = new TH1F("fMultDist_pp","Multiplicity Distribution of PP",200,0,200);
-    fMultDist_pp->GetXaxis()->SetTitle("Multiplicity Percentile");
-    fOutputList->Add(fMultDist_pp);
-
-    PostData(1, fOutputList);
-}
-//_____________________________________________________________________________
-void AliAnalysisTaskMyQA::UserExec(Option_t *)
-{
-    //std::cout << "Event!" << std::endl;
-    fESD = dynamic_cast<AliESDEvent*> (InputEvent());
-    if(!fESD) return;
-
-    AliMCEvent  *mcEvent        = 0x0;
-    AliVEventHandler* eventHandler = AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler();
-    if(eventHandler){
-        AliMCEventHandler* mcEventHandler = dynamic_cast<AliMCEventHandler*>(eventHandler);
-        if(mcEventHandler) mcEvent = static_cast<AliMCEventHandler*>(AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler())->MCEvent();
-    }
-    if(!mcEvent) return;
+    // Y cut
+    if ((mcInputTrack->Y() > 0.5) ||
+        (mcInputTrack->Y() < -0.5))
+      continue;
     
-    AliStack*    mcstack = mcEvent->Stack();
-    if(!mcstack) return;
+    fHistos->FillTH1("hCheck", 0.);
 
-    htotalEvent->Fill(0); // Total N of event
+    auto mcPart1 = (AliAODMCParticle*)fMCArray->At(
+        abs(mcInputTrack->GetDaughterFirst()));
+    auto mcPart2 = (AliAODMCParticle*)fMCArray->At(
+        abs(mcInputTrack->GetDaughterLast()));
+    
+    // std::cout << "Check the daughters: " << TMath::Abs(mcPart1->GetPdgCode()) << ", " << TMath::Abs(mcPart2->GetPdgCode()) << std::endl;
 
-    Bool_t IsINELg0 = false;
-    for (Int_t it = 0; it < mcstack->GetNprimary(); it++) {
-        AliMCParticle *mcInputTrack = (AliMCParticle*)mcEvent->GetTrack(it);
-        if (mcInputTrack->IsPhysicalPrimary() && TMath::Abs(mcInputTrack->Charge()) && TMath::Abs(mcInputTrack->Eta())<1 ) IsINELg0 = true;
-    }
+    if (TMath::Abs(mcPart1->GetPdgCode()) == kXiCode)
+        fHistos->FillTH1("hCheck", 1);
+    if (TMath::Abs(mcPart1->GetPdgCode()) == kXiZeroCode)
+        fHistos->FillTH1("hCheck", 2);
+    if (TMath::Abs(mcPart2->GetPdgCode()) == kXiCode)
+        fHistos->FillTH1("hCheck", 1);
+    if (TMath::Abs(mcPart2->GetPdgCode()) == kXiZeroCode)
+        fHistos->FillTH1("hCheck", 2);
+  }
 
-    // INEL > 0
-    if(IsINELg0){
-        //std::cout << "It's INELg0 event!" << std::endl;
-        htotalEvent->Fill(1); // Total N of INELg0 event
-
-        const AliMultiplicity* mult = fESD->GetMultiplicity();
-        Int_t fSpdT_origin = mult->GetNumberOfTracklets();
-        //std::cout << "# of total tracklet : "<< fSpdT_origin << std::endl;
-
-        Int_t fNSpdT = 0;
-        for (Int_t i=0; i<fSpdT_origin; ++i) if(TMath::Abs(mult->GetEta(i)) < 0.8) fNSpdT++;
-        //std::cout << "# of passed tracklet : "<< fNSpdT << std::endl;
-        
-        // |Eta| < 1
-        if(fNSpdT > 0){
-            htotalEvent->Fill(2); // Total N of triggered event.
-
-            if(fNSpdT > 0) htriggered_INELg0_tracklet->Fill(0); // INEL>0
-
-            if(fNSpdT > 51) htriggered_INELg0_tracklet->Fill(10); // INEL>0
-            else if(fNSpdT > 41) htriggered_INELg0_tracklet->Fill(9); // INEL>0
-            else if(fNSpdT > 36) htriggered_INELg0_tracklet->Fill(8); // INEL>0
-            else if(fNSpdT > 31) htriggered_INELg0_tracklet->Fill(7); // INEL>0
-            else if(fNSpdT > 26) htriggered_INELg0_tracklet->Fill(6); // INEL>0
-            else if(fNSpdT > 21) htriggered_INELg0_tracklet->Fill(5); // INEL>0
-            else if(fNSpdT > 16) htriggered_INELg0_tracklet->Fill(4); // INEL>0
-            else if(fNSpdT > 11) htriggered_INELg0_tracklet->Fill(3); // INEL>0
-            else if(fNSpdT > 6) htriggered_INELg0_tracklet->Fill(2); // INEL>0
-            else if(fNSpdT > 0) htriggered_INELg0_tracklet->Fill(1); // INEL>0
-            
-            // CINT7 Triggered event.
-            Bool_t isSelectedkINT7 =(((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->IsEventSelected() & AliVEvent::kINT7);
-            if(isSelectedkINT7){
-
-                htotalEvent->Fill(3); // Total N of triggered event.
-
-                if(fNSpdT > 0) htriggered_CINT7_tracklet->Fill(0); // INEL>0 in CINT7
-                
-                if(fNSpdT > 51) htriggered_CINT7_tracklet->Fill(10); // INEL>0 in CINT7
-                else if(fNSpdT > 41) htriggered_CINT7_tracklet->Fill(9); // INEL>0 in CINT7
-                else if(fNSpdT > 36) htriggered_CINT7_tracklet->Fill(8); // INEL>0 in CINT7
-                else if(fNSpdT > 31) htriggered_CINT7_tracklet->Fill(7); // INEL>0 in CINT7
-                else if(fNSpdT > 26) htriggered_CINT7_tracklet->Fill(6); // INEL>0 in CINT7
-                else if(fNSpdT > 21) htriggered_CINT7_tracklet->Fill(5); // INEL>0 in CINT7
-                else if(fNSpdT > 16) htriggered_CINT7_tracklet->Fill(4); // INEL>0 in CINT7
-                else if(fNSpdT > 11) htriggered_CINT7_tracklet->Fill(3); // INEL>0 in CINT7
-                else if(fNSpdT > 6) htriggered_CINT7_tracklet->Fill(2); // INEL>0 in CINT7
-                else if(fNSpdT > 0) htriggered_CINT7_tracklet->Fill(1); // INEL>0 in CINT7
-
-
-                // AliMultSelection
-                AliMultSelection *MultSelection = (AliMultSelection*) fESD->FindListObject("MultSelection");
-                Float_t lPerc = 300; //nonsense
-
-                //Quality check                                                                          // it should be same with 1.
-                lPerc = MultSelection->GetMultiplicityPercentile("V0M");
-                fMultDist->Fill(lPerc);
-
-                if(lPerc < 101) htriggered_CINT7_VOM->Fill(0); // INEL>0 in CINT7
-                
-                if(lPerc > 70) htriggered_CINT7_VOM->Fill(1); // INEL>0 in CINT7
-                else if(lPerc > 50) htriggered_CINT7_VOM->Fill(2); // INEL>0 in CINT7
-                else if(lPerc > 40) htriggered_CINT7_VOM->Fill(3); // INEL>0 in CINT7
-                else if(lPerc > 30) htriggered_CINT7_VOM->Fill(4); // INEL>0 in CINT7
-                else if(lPerc > 20) htriggered_CINT7_VOM->Fill(5); // INEL>0 in CINT7
-                else if(lPerc > 15) htriggered_CINT7_VOM->Fill(6); // INEL>0 in CINT7
-                else if(lPerc > 10) htriggered_CINT7_VOM->Fill(7); // INEL>0 in CINT7
-                else if(lPerc > 5) htriggered_CINT7_VOM->Fill(8); // INEL>0 in CINT7
-                else if(lPerc > 1) htriggered_CINT7_VOM->Fill(9); // INEL>0 in CINT7
-                else if(lPerc > 0) htriggered_CINT7_VOM->Fill(10); // INEL>0 in CINT7
-                
-                if(MultSelection->IsEventSelected()){
-                    htotalEvent->Fill(4); // Total N of Multi selected event
-                    fMultDist_pp->Fill(lPerc);
-
-                    if(lPerc < 101) htriggered_AliMult_VOM->Fill(0); // INEL>0 in CINT7
-                    
-                    if(lPerc > 70) htriggered_AliMult_VOM->Fill(1); // INEL>0 in CINT7
-                    else if(lPerc > 50) htriggered_AliMult_VOM->Fill(2); // INEL>0 in CINT7
-                    else if(lPerc > 40) htriggered_AliMult_VOM->Fill(3); // INEL>0 in CINT7
-                    else if(lPerc > 30) htriggered_AliMult_VOM->Fill(4); // INEL>0 in CINT7
-                    else if(lPerc > 20) htriggered_AliMult_VOM->Fill(5); // INEL>0 in CINT7
-                    else if(lPerc > 15) htriggered_AliMult_VOM->Fill(6); // INEL>0 in CINT7
-                    else if(lPerc > 10) htriggered_AliMult_VOM->Fill(7); // INEL>0 in CINT7
-                    else if(lPerc > 5) htriggered_AliMult_VOM->Fill(8); // INEL>0 in CINT7
-                    else if(lPerc > 1) htriggered_AliMult_VOM->Fill(9); // INEL>0 in CINT7
-                    else if(lPerc > 0) htriggered_AliMult_VOM->Fill(10); // INEL>0 in CINT7
-                    
-                }// IsEventSelected in AliMultSelection
-            }//eta < 1
-        }//CINT7
-    }//INEL>0
-
-    PostData(1, fOutputList);
+  PostData(1, fHistos->GetListOfHistograms());
 }
 //_____________________________________________________________________________
-void AliAnalysisTaskMyQA::Terminate(Option_t *)
-{
-}
+void AliAnalysisTaskMyQA::Terminate(Option_t*) {}
 //_____________________________________________________________________________
